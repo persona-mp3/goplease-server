@@ -19,12 +19,15 @@ type Template struct {
 }
 
 type Unit struct {
-	ID         ds.ID  `json:"id"`
-	TemplateID int    `json:"template_id"`
-	OwnerID    ds.ID  `json:"owner_id"`
-	Name       string `json:"name"`
+	ID          ds.ID  `json:"id"`
+	TemplateID  int    `json:"template_id"`
+	OwnerID     ds.ID  `json:"owner_id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 
-	MaxHP         int `json:"max_hp"`
+	BaseAtk       int `json:"base_atk"`
+	CurrentAtk    int `json:"current_atk"`
+	BaseHP        int `json:"base_hp"`
 	CurrentHP     int `json:"current_hp"`
 	CurrentShield int `json:"current_shield"`
 
@@ -45,7 +48,10 @@ func NewUnitFromTemplate(t Template, playerID ds.ID) *Unit {
 		TemplateID:    t.ID,
 		OwnerID:       playerID,
 		Name:          t.Name,
-		MaxHP:         t.HP,
+		Description:   t.Description,
+		BaseAtk:       t.Attack,
+		CurrentAtk:    t.Attack,
+		BaseHP:        t.HP,
 		CurrentHP:     t.HP,
 		CurrentShield: t.Shield,
 		AP:            t.ActionPoints,

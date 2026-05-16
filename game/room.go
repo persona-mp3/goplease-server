@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ognev-dev/goplease/app/ds"
+	"github.com/ognev-dev/goplease/game/unit"
 )
 
 // PlacementAction is sent by a player to place a unit on the board.
@@ -28,9 +29,10 @@ type TurnResult struct {
 type Room struct {
 	mu sync.Mutex
 
-	ID      string
-	Board   Board
-	Players [2]*Player
+	ID         string
+	Board      Board
+	Players    [2]*Player
+	UnitsQueue []unit.Unit
 
 	CurrentTurn  int
 	ActivePlayer int // 0 or 1 whose turn is
