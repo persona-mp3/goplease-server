@@ -11,8 +11,8 @@ func New() *Bot { return &Bot{} }
 
 // TakeTurn places units and calls EndTurn on behalf of the bot player.
 // Called from a goroutine; the room's internal mutex handles concurrency.
-func (b *Bot) TakeTurn(room *game.Room, p *game.Player) {
-	if room.Phase != game.PhaseUnitPlacement {
+func (b *Bot) TakeTurn(room *game.Arena, p *game.Player) {
+	if room.Phase != game.PlacementPhase {
 		return
 	}
 

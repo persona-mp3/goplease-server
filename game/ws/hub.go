@@ -47,7 +47,7 @@ const (
 type Client struct {
 	ID       string
 	PlayerID ds.ID
-	RoomID   string
+	ArenaID  string
 
 	hub  *Hub
 	conn *websocket.Conn
@@ -252,7 +252,7 @@ func (h *Hub) broadcastLoop() {
 	for bc := range h.broadcast {
 		h.mu.RLock()
 		for _, c := range h.clients {
-			if c.RoomID == bc.RoomID {
+			if c.ArenaID == bc.RoomID {
 				c.Send(bc.Message)
 			}
 		}

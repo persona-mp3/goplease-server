@@ -8,13 +8,12 @@ import (
 	"github.com/ognev-dev/goplease/app/ds"
 	"github.com/ognev-dev/goplease/game"
 	"github.com/ognev-dev/goplease/game/bot"
-	"github.com/ognev-dev/goplease/game/unit"
 )
 
-const matchmakingTimeout = 1 * time.Second
+const matchmakingTimeout = 30 * time.Second
 
 // MatchCallback is called on the searching player's goroutine when a room is ready.
-type MatchCallback func(room *game.Room, playerIndex int)
+type MatchCallback func(room *game.Arena, playerIndex int)
 
 type queueEntry struct {
 	playerID ds.ID
@@ -24,17 +23,17 @@ type queueEntry struct {
 
 // Matchmaker pairs players or creates a bot opponent after a timeout.
 type Matchmaker struct {
-	mu    sync.Mutex
-	queue []queueEntry
-	rooms map[string]*game.Room // roomID → room
+	mu     sync.Mutex
+	queue  []queueEntry
+	arenas map[string]*game.Arena // arenaID:arena
 
 	botAI *bot.Bot
 }
 
 func New() *Matchmaker {
 	mm := &Matchmaker{
-		rooms: make(map[string]*game.Room),
-		botAI: bot.New(),
+		arenas: make(map[string]*game.Arena),
+		botAI:  bot.New(),
 	}
 	go mm.watchQueue()
 	return mm
@@ -57,13 +56,13 @@ func (mm *Matchmaker) Enqueue(playerID ds.ID, cb MatchCallback) {
 		opponent := mm.queue[0]
 		mm.queue = mm.queue[1:]
 
-		room := mm.createRoom(opponent.playerID, playerID, false)
+		arena := mm.createArena(opponent.playerID, playerID, false)
 
-		log.Printf("[match] paired %s vs %s in room %s", opponent.playerID, playerID, room.ID)
+		log.Printf("[match] paired %s vs %s in arena %s", opponent.playerID, playerID, arena.ID)
 
 		// Notify both players (callbacks may send WebSocket messages).
-		go opponent.cb(room, 0)
-		go cb(room, 1)
+		go opponent.cb(arena, 0)
+		go cb(arena, 1)
 		return
 	}
 
@@ -89,24 +88,24 @@ func (mm *Matchmaker) Cancel(playerID ds.ID) {
 	}
 }
 
-// Room returns the active room with the given ID, or nil.
-func (mm *Matchmaker) Room(roomID string) *game.Room {
+// Arena returns the active room with the given ID, or nil.
+func (mm *Matchmaker) Arena(arenaID string) *game.Arena {
 	mm.mu.Lock()
 	defer mm.mu.Unlock()
-	return mm.rooms[roomID]
+	return mm.arenas[arenaID]
 }
 
 // CloseRoom removes a finished room from the registry.
 func (mm *Matchmaker) CloseRoom(roomID string) {
 	mm.mu.Lock()
 	defer mm.mu.Unlock()
-	delete(mm.rooms, roomID)
+	delete(mm.arenas, roomID)
 	log.Printf("[match] room %s closed", roomID)
 }
 
 // MaybeTriggerBot checks if the active player in a room is a bot and, if so,
 // runs its turn asynchronously.
-func (mm *Matchmaker) MaybeTriggerBot(room *game.Room) {
+func (mm *Matchmaker) MaybeTriggerBot(room *game.Arena) {
 	// Peek at the active player without holding the room lock long.
 	activeIdx := room.ActivePlayer
 	p := room.Players[activeIdx]
@@ -118,6 +117,21 @@ func (mm *Matchmaker) MaybeTriggerBot(room *game.Room) {
 		time.Sleep(800 * time.Millisecond)
 		mm.botAI.TakeTurn(room, p)
 	}()
+}
+
+// ArenaByPlayerID finds the active arena for a player.
+func (mm *Matchmaker) ArenaByPlayerID(playerID ds.ID) *game.Arena {
+	mm.mu.Lock()
+	defer mm.mu.Unlock()
+	for _, ar := range mm.arenas {
+		for _, p := range ar.Players {
+			if p.ID == playerID {
+				return ar
+			}
+		}
+	}
+
+	return nil
 }
 
 // ─── Internal ─────────────────────────────────────────────────────────────────
@@ -140,7 +154,7 @@ func (mm *Matchmaker) promoteStaleEntries() {
 	remaining := mm.queue[:0]
 	for _, e := range mm.queue {
 		if now.Sub(e.at) >= matchmakingTimeout {
-			room := mm.createRoom(e.playerID, ds.NewID(), true)
+			room := mm.createArena(e.playerID, ds.NewID(), true)
 			log.Printf("[match] timeout — pairing %s with bot in room %s", e.playerID, room.ID)
 			go e.cb(room, 0)
 
@@ -153,15 +167,15 @@ func (mm *Matchmaker) promoteStaleEntries() {
 	mm.queue = remaining
 }
 
-func (mm *Matchmaker) createRoom(p1ID, p2ID ds.ID, p2IsBot bool) *game.Room {
-	deck1 := unit.StartingUnits(p1ID)
-	deck2 := unit.StartingUnits(p2ID)
+func (mm *Matchmaker) createArena(p1ID, p2ID ds.ID, p2IsBot bool) *game.Arena {
+	deck1 := game.StartingUnits(p1ID)
+	deck2 := game.StartingUnits(p2ID)
 
 	p1 := game.NewPlayer(p1ID, "Player 1", 0, false, deck1)
 	p2 := game.NewPlayer(p2ID, nameForPlayer(p2IsBot), 1, p2IsBot, deck2)
 
-	room := game.NewRoom(p1, p2)
-	mm.rooms[room.ID] = room
+	room := game.NewArena(p1, p2)
+	mm.arenas[room.ID] = room
 	return room
 }
 

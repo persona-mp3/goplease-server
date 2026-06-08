@@ -1,0 +1,154 @@
+package status
+
+type Type string
+type Alignment string
+
+const Permanent = -1
+
+const (
+	Provoked       Type = "provoked"
+	Provoking      Type = "provoking"
+	Stunned        Type = "stunned"
+	Rallied        Type = "rallied"
+	Exposed        Type = "exposed"
+	Hamstrung      Type = "hamstrung"
+	Sharpened      Type = "sharpened"
+	DebuffWard     Type = "debuff_ward"
+	TemporalAnchor Type = "temporal_anchor"
+	Frenzied       Type = "frenzied"
+)
+
+const (
+	Positive Alignment = "positive"
+	Negative Alignment = "negative"
+	Neutral  Alignment = "neutral"
+)
+
+type Status struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Type        Type   `json:"type"`
+	// Duration -1 - permanent
+	Duration     int       `json:"duration,omitempty"`
+	InitialValue int       `json:"initial_value,omitempty"`
+	Alignment    Alignment `json:"alignment"`
+}
+
+type Value struct {
+	UnitID   string         `json:"unit_id"`
+	Duration int            `json:"duration"`
+	Value    int            `json:"value"`
+	Status   *Status        `json:"status"`
+	Meta     map[string]any `json:"meta"`
+}
+
+func (e Value) IsPositive() bool {
+	if e.Status == nil {
+		return false
+	}
+
+	return e.Status.Alignment == Positive
+}
+
+func (e Value) IsNegative() bool {
+	if e.Status == nil {
+		return false
+	}
+
+	return e.Status.Alignment == Negative
+}
+
+func (e Value) IsNeutral() bool {
+	if e.Status == nil {
+		return false
+	}
+
+	return e.Status.Alignment == Neutral
+}
+
+var debuffWardStatus = &Status{
+	Name:        "Debuff Ward",
+	Description: "Prevents new debuffs from being applied for 1 turn.",
+	Duration:    1,
+	Type:        DebuffWard,
+	Alignment:   Positive,
+}
+
+var sharpenedStatus = &Status{
+	Name:         "Sharpened",
+	Description:  "Increases attack by 1 until the end of the next turn.",
+	Duration:     2,
+	InitialValue: 1,
+	Type:         Sharpened,
+	Alignment:    Positive,
+}
+
+var hamstrungStatus = &Status{
+	Name:         "Hamstrung",
+	Description:  "Movement is reduced to 1 tile.",
+	Duration:     1,
+	InitialValue: 1,
+	Type:         Hamstrung,
+	Alignment:    Negative,
+}
+
+var exposedStatus = &Status{
+	Name:         "Exposed",
+	Description:  "Attacks against this unit deal +1 damage.",
+	Duration:     3,
+	InitialValue: 1,
+	Type:         Exposed,
+	Alignment:    Negative,
+}
+
+var stunnedStatus = &Status{
+	Name:        "Stunned",
+	Description: "This unit is stunned and cannot take its next action.",
+	Duration:    1,
+	Type:        Stunned,
+	Alignment:   Negative,
+}
+
+var provokedStatus = &Status{
+	Name:        "Provoked",
+	Description: "This unit is forced to target the provoking unit if possible.",
+	Duration:    1,
+	Type:        Provoked,
+	Alignment:   Negative,
+}
+
+// This status is only informational and has no effect
+var provokingStatus = &Status{
+	Name:        "Provoking",
+	Description: "This unit is provoking other units and will be attacked by them on their turn.",
+	Duration:    1,
+	Type:        Provoking,
+	Alignment:   Neutral,
+}
+
+var ralliedStatus = &Status{
+	Name:         "Rallied",
+	Description:  "Attack increased by 1.",
+	Duration:     2,
+	InitialValue: 1,
+	Type:         Rallied,
+	Alignment:    Positive,
+}
+
+var temporalAnchorStatus = &Status{
+	Name:         "Temporal Anchor",
+	Description:  "Gain +1 AP at the start of your turn. At the end of the turn, restore your HP, Shield, and position to their state at the start of the turn.",
+	InitialValue: 1,
+	Duration:     1,
+	Type:         TemporalAnchor,
+	Alignment:    Positive,
+}
+
+var frenziedStatus = &Status{
+	Name:         "Frenzied",
+	Description:  "You are frenzied because 2 or more opponents are nearby. Grants +1 Attack while active.",
+	InitialValue: 1,
+	Type:         Frenzied,
+	Alignment:    Positive,
+	Duration:     Permanent,
+}

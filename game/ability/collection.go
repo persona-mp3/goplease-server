@@ -1,6 +1,6 @@
 package ability
 
-import "github.com/ognev-dev/goplease/game/ability/effect"
+import "github.com/ognev-dev/goplease/game/ability/status"
 
 const (
 	BasicMeleeAttack ID = "basic_melee_attack"
@@ -35,7 +35,7 @@ const (
 	Translocation ID = "translocation"
 	TimeWarp      ID = "time_warp"
 	Purge         ID = "purge"
-	ArcaneChaos   ID = "arcane_chaos"
+	FocusField    ID = "focus_field"
 
 	// support
 	Heal           ID = "heal"
@@ -51,7 +51,7 @@ const (
 // 4. push / pull
 // 5. chain lighting / chain heal, etc
 // 6. DoT & HoT (poison, bleed, regen, etc)
-// 7. AoE (volley of arrows)
+// 7. AoE (volley of arrows, fireball - etc)
 // 8. traps
 // 9. invisiblity
 // 10. clone
@@ -61,40 +61,43 @@ const (
 // 14. Thorns
 // 15. Life steal
 // 16. Alter unit queue
+// 17. buff steal, debuff transfer|reflect
+
+const HintCurrentATK = "ATK"
 
 var Abilities = map[ID]Ability{
 	BasicMeleeAttack: {
 		Type:        Skill,
 		IsPassive:   false,
 		Name:        "Strike",
-		Description: "Delivers a direct blow to a nearby enemy.",
+		Description: "Delivers direct blow to a nearby enemy.",
 		Cooldown:    0,
 		Range:       1,
 		Activation:  SelectEnemy,
 		TargetMode:  TargetEnemies,
-		Effects:     Effects(effect.NewBasicAttack()),
+		DamageHint:  HintCurrentATK,
 	},
 	BasicRangeAttack: {
 		Type:        Skill,
 		IsPassive:   false,
 		Name:        "Shoot",
-		Description: "Fires a projectile at a distant target.",
+		Description: "Fires projectile at a distant target.",
 		Cooldown:    0,
 		Range:       4,
 		Activation:  SelectEnemy,
 		TargetMode:  TargetEnemies,
-		Effects:     Effects(effect.NewBasicAttack()),
+		DamageHint:  HintCurrentATK,
 	},
 	BasicMagicAttack: {
 		Type:        Skill,
 		IsPassive:   false,
 		Name:        "Arcane Bolt",
-		Description: "Hurls a bolt of arcane energy.",
+		Description: "Hurls bolt of arcane energy.",
 		Cooldown:    0,
 		Range:       4,
 		Activation:  SelectEnemy,
 		TargetMode:  TargetEnemies,
-		Effects:     Effects(effect.NewBasicAttack()),
+		DamageHint:  HintCurrentATK,
 	},
 
 	// --- TANK ---
@@ -102,14 +105,14 @@ var Abilities = map[ID]Ability{
 		Type:        Skill,
 		IsPassive:   false,
 		Name:        "Fortify",
-		Description: "You and adjacent allies gain +3 Shield. Shield decays by 1 at the start of each turn.",
+		Description: "You and adjacent allies gain +5 Shield. Shield decays by 1 at the start of each turn.",
 		Cooldown:    3,
-		Range:       0,
+		Range:       0, // see AreaRadius
 		Activation:  Instant,
 		TargetMode:  TargetAlliesAndSelf,
 		Area:        AreaCircle,
 		AreaRadius:  2,
-		Effects:     Effects(effect.NewStatusEffect(effect.DecayingShield)),
+		Effect:      Effect{AddShield: 5},
 	},
 	Provoke: {
 		Type:        Skill,
@@ -118,10 +121,10 @@ var Abilities = map[ID]Ability{
 		Description: "Forces enemies to attack you on their turn.",
 		Cooldown:    3,
 		Range:       2,
+		TargetMode:  TargetEnemies,
 		Activation:  Instant,
 		Area:        AreaCircle,
 		AreaRadius:  2,
-		Effects:     Effects(effect.NewStatusEffect(effect.Provoked)),
 	},
 	ShieldBash: {
 		Type:        Skill,
@@ -132,17 +135,15 @@ var Abilities = map[ID]Ability{
 		Range:       1,
 		TargetMode:  TargetEnemies,
 		Activation:  SelectEnemy,
-		Effects:     Effects(effect.NewStatusEffect(effect.Stun)),
+		Effect:      Effect{ApplyStatus: status.Stunned},
 	},
 	UndyingWill: {
 		Type:        Skill,
 		IsPassive:   true,
 		Name:        "Undying Will",
-		Description: "When receiving fatal damage, prevent death: set HP to 1 and gain 3 Shield.",
+		Description: "When receiving fatal damage, prevent death: set HP to 1 and gain 5 Shield.",
 		Cooldown:    5,
 		Range:       0,
-		// TODO
-		//Effects:     ...
 	},
 
 	// --- WARRIOR ---
@@ -150,13 +151,13 @@ var Abilities = map[ID]Ability{
 		Type:        Skill,
 		IsPassive:   false,
 		Name:        "Battle Cry",
-		Description: "Nearby allies gain +3 Attack. The bonus decays by 1 at the start of each turn.",
+		Description: "Grants +1 Attack to nearby allies for 2 turns",
 		Cooldown:    3,
 		TargetMode:  TargetAllies,
 		Activation:  Instant,
 		Area:        AreaCircle,
 		AreaRadius:  2,
-		Effects:     Effects(effect.NewStatusEffect(effect.DecayingAttack)),
+		Effect:      Effect{ApplyStatus: status.Rallied},
 	},
 	IdolihuSpin: {
 		Type:        Skill,
@@ -168,26 +169,27 @@ var Abilities = map[ID]Ability{
 		Activation:  Instant,
 		Area:        AreaCircle,
 		AreaRadius:  1,
-		Effects:     Effects(effect.NewBasicAttack()),
+		DamageHint:  HintCurrentATK,
 	},
 	PowerPush: {
 		Type:        Skill,
 		IsPassive:   false,
 		Name:        "Power Push",
-		Description: "Deals 3 damage and pushes the target back 1 tile. If the target cannot be pushed, deals 5 damage instead.",
+		Description: "Deals 2 damage and pushes the target back 1 tile. If the target cannot be pushed, deals 4 damage instead.",
 		Cooldown:    3,
 		Range:       1,
 		TargetMode:  TargetEnemies,
 		Activation:  SelectEnemy,
-		Effects:     Effects(effect.NewAttack(3), effect.NewMove(effect.MovePush, 1)),
-		// TODO Custom handler (Attack(5) if cannot move)
+		DamageHint:  "2/4",
+		Effect:      Effect{DealDamage: 2, DealAltDamage: 4},
 	},
 	Frenzy: {
 		Type:        Skill,
 		IsPassive:   true,
 		Name:        "Frenzy",
-		Description: "Gain +2 Attack if there are 2 or more enemies within 2 tiles.",
-		// TODO event bus
+		Description: "Gains +1 Attack if there are 2 or more enemies within 2 cells.",
+		AreaRadius:  2,
+		Effect:      Effect{ApplyStatus: status.Frenzied},
 	},
 
 	// --- RANGER ---
@@ -195,44 +197,47 @@ var Abilities = map[ID]Ability{
 		Type:        Skill,
 		IsPassive:   false,
 		Name:        "Piercing Shot",
-		Description: "Fires a piercing shot that deals attack damage to all enemies in a straight line.",
-		Cooldown:    3,
+		Description: "Fires a piercing shot that deals 3 damage to each enemy in a straight line.",
+		Cooldown:    2,
 		TargetMode:  TargetEnemies,
 		Activation:  SelectAny,
 		Area:        AreaLine,
 		AreaRadius:  4,
-		Effects:     Effects(effect.NewBasicAttack()),
+		DamageHint:  "2",
+		Effect:      Effect{DealDamage: 3},
 	},
 	HuntersMark: {
 		Type:        Skill,
 		IsPassive:   false,
 		Name:        "Hunter's Mark",
-		Description: "Marks the target for 3 turns. Allies deal +1 damage to the marked target.",
+		Description: "Marks target for 3 turns. Allies deal +1 damage to marked target.",
 		Cooldown:    4,
 		Range:       3,
 		TargetMode:  TargetEnemies,
 		Activation:  SelectEnemy,
-		Effects:     Effects(effect.NewStatusEffect(effect.Exposed)),
+		Effect:      Effect{ApplyStatus: status.Exposed},
 	},
 	HamstringShot: {
 		Type:        Skill,
 		IsPassive:   false,
 		Name:        "Hamstring Shot",
-		Description: "Deals 2 damage and reduces the target's Move Range to 1 until the end of its next turn.",
+		Description: "Deals 2 damage and reduces target's Move Range to 1 for next turn.",
 		Cooldown:    3,
-		Range:       3,
+		Range:       4,
 		TargetMode:  TargetEnemies,
 		Activation:  SelectEnemy,
-		Effects:     Effects(effect.NewAttack(2), effect.NewStatusEffect(effect.Hamstrung)),
+		DamageHint:  "2",
+		Effect:      Effect{DealDamage: 2, ApplyStatus: status.Hamstrung},
 	},
 	CoverFire: {
 		Type:        Skill,
 		IsPassive:   true,
 		Name:        "Cover Fire",
-		Description: "Once per turn, counter-attacks the first enemy that strikes an ally within your range, dealing 3 flat damage.",
-		Range:       3,
-		// TODO EventHandler
-		//Effects:     nil,
+		Description: "Once per round, counter-attacks the first enemy that strikes an ally within your range, dealing 3 flat damage.",
+		Cooldown:    1,
+		Range:       4,
+		DamageHint:  "3",
+		Effect:      Effect{DealDamage: 3},
 	},
 
 	// --- ROGUE ---
@@ -240,22 +245,23 @@ var Abilities = map[ID]Ability{
 		Type:        Spell,
 		IsPassive:   false,
 		Name:        "Shadow Step",
-		Description: "Teleport to a target cell and gain +2 Attack until the end of your next turn.",
+		Description: "Teleport to target cell and gain +1 Attack until the end of your next turn.",
 		Cooldown:    3,
 		Range:       4,
 		Activation:  SelectFreeCell,
-		Effects:     Effects(effect.NewMoveTo(), effect.NewStatusEffect(effect.Sharpened)),
+		Effect:      Effect{ApplyStatus: status.Sharpened},
 	},
 	GangUp: {
 		Type:        Skill,
 		IsPassive:   false,
 		Name:        "Gang Up",
-		Description: "Executes a melee attack. Deals +2 damage if an ally is on the opposite side of the target.",
-		Cooldown:    3,
+		Description: "Executes a melee attack. Deals +2 bonus damage if an ally is on the opposite side of the target",
+		Cooldown:    2,
 		Range:       1,
 		TargetMode:  TargetEnemies,
 		Activation:  SelectEnemy,
-		Effects:     nil, // TODO AbilityHandler
+		DamageHint:  "ATK/ATK+2",
+		Effect:      Effect{BonusDamage: 2},
 	},
 	Eliminate: {
 		Type:        Skill,
@@ -266,16 +272,17 @@ var Abilities = map[ID]Ability{
 		Range:       1,
 		TargetMode:  TargetEnemies,
 		Activation:  SelectEnemy,
-		Effects:     Effects(effect.NewAttack(3)), // TODO
+		DamageHint:  "3",
+		Effect:      Effect{DealDamage: 3, AddAP: 1},
 	},
 	Opportunity: {
 		Type:        Skill,
 		IsPassive:   true,
 		Name:        "Opportunity",
-		Description: "Once per turn, attacks an adjacent enemy when an ally hits them with a melee attack.",
-		Cooldown:    0,
+		Description: "Once per turn, attacks an adjacent enemy when an ally hits them within melee range.",
+		Cooldown:    1,
 		Range:       1,
-		Effects:     nil, // TODO
+		DamageHint:  HintCurrentATK,
 	},
 
 	// --- MAGE ---
@@ -284,25 +291,23 @@ var Abilities = map[ID]Ability{
 		IsPassive:   false,
 		Name:        "Translocation",
 		Description: "Swap places with any ally or enemy within range.",
-		Cooldown:    4,
-		Range:       3,
+		Cooldown:    2,
+		Range:       4,
 		TargetMode:  TargetAny,
 		Activation:  SelectAnyUnit,
-		Effects:     Effects(effect.NewMoveSwap()),
 	},
 	TimeWarp: {
 		Type:        Spell,
 		IsPassive:   false,
 		Name:        "Time Warp",
-		Description: "Target ally or self gains +1 AP. At the end of that unit’s turn, its HP, Shield, and position are restored to their state at the start of the turn.",
-		Cooldown:    5,
+		Description: "Target ally or self gains +1 AP at the start of their next turn. At the end of that turn, their HP, Shield, and position are restored to their state at the start of the turn.",
+		Cooldown:    4,
 		Range:       3,
 		TargetMode:  TargetAlliesAndSelf,
-		Activation:  SelectAlly,
-		Effects:     nil, // TODO
+		Activation:  SelectAllyOrSelf,
+		Effect:      Effect{ApplyStatus: status.TemporalAnchor},
 	},
 	Purge: {
-		ID:          "",
 		Type:        Spell,
 		IsPassive:   false,
 		Name:        "Purge",
@@ -311,14 +316,13 @@ var Abilities = map[ID]Ability{
 		Range:       3,
 		TargetMode:  TargetEnemies,
 		Activation:  SelectEnemy,
-		Effects:     Effects(effect.NewDispelPositive()),
 	},
-	ArcaneChaos: {
+	FocusField: {
 		Type:        Spell,
 		IsPassive:   true,
-		Name:        "Arcane Chaos",
-		Description: "At the end of your turn, gain bonuses based on actions taken during the turn:\n- If you did not move: gain +1 Movement Range next turn\n- If no enemies were within 3 tiles: gain +1 Attack Range next turn\n- If you took no damage: restore 1 HP next turn\n- If you took damage: gain 1 Shield\n\nIf 3  conditions are met, also gain +1 Attack next turn.",
-		Effects:     nil, // TODO
+		Name:        "Focus Field",
+		Description: "All friendly units starting their turn next to Mist have their cooldowns reduced by 1  (excluding passive abilities).",
+		Range:       1,
 	},
 
 	// --- SUPPORT ---
@@ -326,45 +330,41 @@ var Abilities = map[ID]Ability{
 		Type:        Spell,
 		IsPassive:   false,
 		Name:        "Heal",
-		Description: "Restores 4 HP to the target ally or self.",
-		Cooldown:    1,
-		Range:       3,
+		Description: "Restores 5 HP to the target ally or self.",
+		Cooldown:    2,
+		Range:       4,
 		TargetMode:  TargetAlliesAndSelf,
 		Activation:  SelectAllyOrSelf,
-		Effects:     Effects(effect.NewHeal(4)),
+		Effect:      Effect{AddHP: 5},
 	},
 	Equalize: {
 		Type:        Spell,
 		IsPassive:   false,
 		Name:        "Equalize",
 		Description: "Equalizes the HP of all allied units within 3 tiles, setting each to the average HP of the affected units.",
-		Cooldown:    4,
+		Cooldown:    3,
 		TargetMode:  TargetAlliesAndSelf,
 		Activation:  Instant,
 		Area:        AreaCircle,
 		AreaRadius:  3,
-		Effects:     nil, // TODO
 	},
 	Purify: {
 		Type:        Skill,
 		IsPassive:   false,
 		Name:        "Purify",
 		Description: "Removes all negative status effects from the target ally or self, restores 2 HP, and grants immunity to new debuffs for 1 turn.",
-		Cooldown:    3,
+		Cooldown:    2,
 		Range:       3,
 		TargetMode:  TargetAlliesAndSelf,
 		Activation:  SelectAllyOrSelf,
-		Effects: Effects(
-			effect.NewDispelNegative(),
-			effect.NewHeal(2),
-			effect.NewStatusEffect(effect.DebuffWard),
-		),
+		Effect:      Effect{AddHP: 2, ApplyStatus: status.DebuffWard},
 	},
 	BottomlessVial: {
 		Type:        Skill,
 		IsPassive:   true,
 		Name:        "Bottomless Vial",
-		Description: "The first time each turn July loses HP, her maximum HP permanently increases by 1.",
-		Effects:     nil, // TODO
+		Description: "The first time each round a friendly unit within 4 cells takes damage, their maximum HP permanently increases by 1",
+		Cooldown:    1,
+		AreaRadius:  4,
 	},
 }
