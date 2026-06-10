@@ -181,7 +181,7 @@ func (mm *Matchmaker) createArena(p1ID, p2ID ds.ID, p2IsBot bool) *game.Arena {
 
 func nameForPlayer(isBot bool) string {
 	if isBot {
-		return "Bot"
+		return "Richard The Tire Less"
 	}
 
 	return "Player 2"

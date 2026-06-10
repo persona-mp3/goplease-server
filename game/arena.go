@@ -29,7 +29,6 @@ type Arena struct {
 	ActivePlayer int // 0 or 1 whose turn is
 	ActiveUnitID ds.ID
 
-	CurrentTurn            int
 	Phase                  RoundPhase
 	UnitsPerPlacementPhase int
 }
@@ -39,7 +38,6 @@ func NewArena(p1, p2 *Player) *Arena {
 		ID:                     ds.NewID(),
 		Players:                [2]*Player{p1, p2},
 		UnitsQueue:             []*Unit{},
-		CurrentTurn:            0,
 		ActivePlayer:           rand.Intn(2),
 		Phase:                  PlacementPhase,
 		Board:                  NewBoard(),
@@ -55,6 +53,24 @@ func (a *Arena) playerByID(id ds.ID) (*Player, int) {
 	}
 
 	return nil, -1
+}
+
+// CheckGameOver returns the loser's index if one side has no living units, or -1 if game continues.
+func (a *Arena) CheckGameOver() int {
+	for i, p := range a.Players {
+		hasAlive := false
+		for _, u := range a.UnitsQueue {
+			if u.OwnerID == p.ID && !u.IsDead {
+				hasAlive = true
+				break
+			}
+		}
+		if !hasAlive && len(a.UnitsQueue) > 0 {
+			return i
+		}
+	}
+
+	return -1
 }
 
 func (a *Arena) ActingUnit() *Unit {
@@ -99,17 +115,18 @@ func (a *Arena) PlacementActorIndex() int {
 	return 0 // tie-breaker: P1
 }
 
-func (a *Arena) PlayerByUnitID(unitID ds.ID) *Player {
+func (a *Arena) PlayerByUnitID(unitID ds.ID) (*Player, int) {
 	for _, u := range a.UnitsQueue {
 		if u.ID == unitID {
-			for _, p := range a.Players {
+			for i, p := range a.Players {
 				if p.ID == u.OwnerID {
-					return p
+					return p, i
 				}
 			}
 		}
 	}
-	return nil
+
+	return nil, -1
 }
 
 func (a *Arena) PlayerByID(id ds.ID) (*Player, int) {
@@ -212,7 +229,11 @@ func (a *Arena) relocateUnit(u *Unit, to HexCoord) (sts ApplyStates) {
 
 func (a *Arena) EndTurn(playerID ds.ID) (state ApplyStates, err error) {
 	if a.ActiveUnitID.IsNil() {
-		err = errors.New("no active unit")
+		if a.Players[a.ActivePlayer].ID != playerID {
+			err = fmt.Errorf("not your turn")
+			return
+		}
+		a.advanceActiveUnit()
 		return
 	}
 

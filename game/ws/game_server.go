@@ -24,6 +24,10 @@ const (
 	PlayUnitAction        Action = "play_unit"
 	ApplyStateAction      Action = "apply_state"
 	NewRound              Action = "new_round"
+	YouWinAction          Action = "you_win"
+	YouLoseAction         Action = "you_lose"
+	SurrenderAction       Action = "surrender"
+	OppSurrenderedAction  Action = "opponent_surrendered"
 	OppDisconnectedAction Action = "opp_disconnected"
 	CancelMatchAction     Action = "cancel_match"
 	MatchCancelledAction  Action = "match_canceled"
@@ -117,6 +121,9 @@ func (gs *GameServer) onMessage(c *Client, msg InMessage) {
 	case UseAbilityAction:
 		gs.handleUseAbility(c, msg.Data)
 
+	case SurrenderAction:
+		gs.handleSurrender(c)
+
 	default:
 		c.Send(OutMessage{
 			Action: ErrorAction,
@@ -161,13 +168,14 @@ func (gs *GameServer) handleReadyToPlay(c *Client) {
 	gs.advanceGameLoop(ar)
 }
 
-// advanceGameLoop determines what happens next in the arena.
 func (gs *GameServer) advanceGameLoop(ar *game.Arena) {
 	switch ar.Phase {
 	case game.PlacementPhase:
 		gs.runPlacementPhase(ar)
 	case game.PlayPhase:
 		gs.advancePlayPhase(ar)
+	case game.GameOverPhase:
+		return
 	}
 }
 
@@ -184,10 +192,12 @@ func (gs *GameServer) advancePlayPhase(ar *game.Arena) {
 		return
 	}
 
-	owner := ar.PlayerByUnitID(activeUnit.ID)
+	owner, ownerIdx := ar.PlayerByUnitID(activeUnit.ID)
 	if owner == nil {
 		return
 	}
+
+	ar.ActivePlayer = ownerIdx
 
 	gs.sendToPlayer(ar, owner.ID, OutMessage{
 		Action: PlayUnitAction,
@@ -340,6 +350,10 @@ func (gs *GameServer) handleUseAbility(c *Client, raw json.RawMessage) {
 		return
 	}
 
+	if gs.checkAndHandleGameOver(ar) {
+		return
+	}
+
 	gs.broadcastStates(ar, c.PlayerID, states)
 }
 
@@ -360,6 +374,11 @@ func (gs *GameServer) handleEndTurn(c *Client) {
 		fmt.Sprintf("ended turn, next active=%s", ar.ActiveUnitID))
 
 	gs.broadcastStates(ar, c.PlayerID, states)
+
+	if gs.checkAndHandleGameOver(ar) {
+		return
+	}
+
 	gs.advanceGameLoop(ar)
 }
 
@@ -412,4 +431,35 @@ func (gs *GameServer) playerName(ar *game.Arena, playerID ds.ID) string {
 		}
 	}
 	return playerID.String()[:8]
+}
+
+func (gs *GameServer) checkAndHandleGameOver(ar *game.Arena) bool {
+	loserIdx := ar.CheckGameOver()
+	if loserIdx < 0 {
+		return false
+	}
+
+	loser := ar.Players[loserIdx]
+	winner := ar.Players[1-loserIdx]
+
+	gs.sendToPlayer(ar, loser.ID, OutMessage{Action: YouLoseAction})
+	gs.sendToPlayer(ar, winner.ID, OutMessage{Action: YouWinAction})
+
+	ar.Phase = game.GameOverPhase
+	gs.matchmaker.CloseArena(ar.ID)
+
+	return true
+}
+
+func (gs *GameServer) handleSurrender(c *Client) {
+	ar := gs.matchmaker.ArenaByPlayerID(c.PlayerID)
+	if ar == nil {
+		return
+	}
+
+	gs.sendToPlayer(ar, c.PlayerID, OutMessage{Action: YouLoseAction})
+	gs.sendToOpponent(ar, c.PlayerID, OutMessage{Action: OppSurrenderedAction})
+
+	ar.Phase = game.GameOverPhase
+	gs.matchmaker.CloseArena(ar.ID)
 }

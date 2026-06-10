@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/ognev-dev/goplease/app/ds"
 	"github.com/ognev-dev/goplease/game/ability"
 )
 
@@ -98,6 +99,21 @@ func (b BoardCells) InRangeHavingUnit(from HexCoord, rangeN int) []*BoardCell {
 	}
 
 	return result
+}
+
+func (b BoardCells) IsUnitInRange(from HexCoord, rangeN int, unitID ds.ID) bool {
+	for to, cell := range b {
+		if cell.Unit == nil {
+			continue
+		}
+		if from.Distance(to) <= rangeN {
+			if cell.Unit.ID == unitID {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func (b BoardCells) InRangeHavingUnitAbility(from HexCoord, rangeN int, abID ability.ID) []*BoardCell {

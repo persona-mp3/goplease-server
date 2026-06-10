@@ -12,6 +12,7 @@ type RoundPhase int
 const (
 	PlayPhase RoundPhase = iota
 	PlacementPhase
+	GameOverPhase
 )
 
 type EndReason string

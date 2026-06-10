@@ -43,22 +43,52 @@ type abilityUsedEvent struct {
 	At HexCoord
 }
 
-func basicMeleeAttackHandler(a *Arena, e abilityUsedEvent) (sts ApplyStates, err error) {
+func basicMeleeAttackHandler(a *Arena, e abilityUsedEvent) (state ApplyStates, err error) {
 	target, err := a.ShouldUnitAt(e.At)
 	if err != nil {
-		return sts, err
+		return state, err
 	}
 
-	sts = a.DealDamageToUnit(e.By, target, e.By.CurrentAtk)
+	ab := ability.ByID(ability.BasicMeleeAttack)
+	if !a.Board.Cells.IsUnitInRange(e.By.Pos, ab.Range, target.ID) {
+		err = fmt.Errorf("invalid ability range")
+		return
+	}
+
+	state = a.DealDamageToUnit(e.By, target, e.By.CurrentAtk)
 	return
 }
 
-func basicRangeAttackHandler(a *Arena, e abilityUsedEvent) (ApplyStates, error) {
-	return basicMeleeAttackHandler(a, e)
+func basicRangeAttackHandler(a *Arena, e abilityUsedEvent) (state ApplyStates, err error) {
+	target, err := a.ShouldUnitAt(e.At)
+	if err != nil {
+		return state, err
+	}
+
+	ab := ability.ByID(ability.BasicRangeAttack)
+	if !a.Board.Cells.IsUnitInRange(e.By.Pos, ab.Range, target.ID) {
+		err = fmt.Errorf("invalid ability range")
+		return
+	}
+
+	state = a.DealDamageToUnit(e.By, target, e.By.CurrentAtk)
+	return
 }
 
-func basicMagicAttackHandler(a *Arena, e abilityUsedEvent) (ApplyStates, error) {
-	return basicMeleeAttackHandler(a, e)
+func basicMagicAttackHandler(a *Arena, e abilityUsedEvent) (state ApplyStates, err error) {
+	target, err := a.ShouldUnitAt(e.At)
+	if err != nil {
+		return state, err
+	}
+
+	ab := ability.ByID(ability.BasicMagicAttack)
+	if !a.Board.Cells.IsUnitInRange(e.By.Pos, ab.Range, target.ID) {
+		err = fmt.Errorf("invalid ability range")
+		return
+	}
+
+	state = a.DealDamageToUnit(e.By, target, e.By.CurrentAtk)
+	return
 }
 
 func fortifyHandler(a *Arena, e abilityUsedEvent) (sts ApplyStates, err error) {
