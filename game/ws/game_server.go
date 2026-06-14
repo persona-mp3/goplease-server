@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync"
+	"time"
 
 	"github.com/ognev-dev/goplease/app/ds"
 	"github.com/ognev-dev/goplease/game"
@@ -16,12 +18,16 @@ type GameServer struct {
 	hub        *Hub
 	matchmaker *match.Matchmaker
 	log        *ActionLogger
+
+	timersMu   sync.Mutex
+	turnTimers map[ds.ID]*time.Timer
 }
 
 func NewGameServer(hub *Hub) *GameServer {
 	gs := &GameServer{
-		hub: hub,
-		log: NewActionLogger(true),
+		hub:        hub,
+		log:        NewActionLogger(true),
+		turnTimers: make(map[ds.ID]*time.Timer),
 	}
 	gs.matchmaker = match.New(gs.notifyMatchFound)
 	return gs
@@ -214,6 +220,8 @@ func (gs *GameServer) advancePlayPhase(ar *game.Arena) {
 	})
 	gs.broadcastStates(ar, owner.ID, states)
 	gs.sendToOpponent(ar, owner.ID, api.OutMessage{Action: api.WaitingForOpponent})
+
+	gs.scheduleTurnTimer(ar, activeUnit.ID)
 }
 
 func (gs *GameServer) runPlacementPhase(ar *game.Arena) {
@@ -385,6 +393,8 @@ func (gs *GameServer) handleEndTurn(c *Client) {
 		return
 	}
 
+	gs.cancelTurnTimer(ar.ID)
+
 	states, err := ar.EndTurn(c.PlayerID)
 	if err != nil {
 		c.Send(errMsg(err.Error()))
@@ -468,6 +478,7 @@ func (gs *GameServer) checkAndHandleGameOver(ar *game.Arena) bool {
 
 	ar.Phase = game.GameOverPhase
 	gs.matchmaker.CloseArena(ar.ID)
+	gs.cancelTurnTimer(ar.ID)
 
 	return true
 }
@@ -483,6 +494,7 @@ func (gs *GameServer) handleSurrender(c *Client) {
 
 	ar.Phase = game.GameOverPhase
 	gs.matchmaker.CloseArena(ar.ID)
+	gs.cancelTurnTimer(ar.ID)
 }
 
 func (gs *GameServer) logAbilityUse(c *Client, req game.UseAbilityPayload) {
@@ -506,4 +518,44 @@ func (gs *GameServer) logAbilityUse(c *Client, req game.UseAbilityPayload) {
 
 	gs.log.Event(pl.Name, fmt.Sprintf("%s (%s) used ability '%s'"+at, uName, pos, req.AbilityID))
 
+}
+
+func (gs *GameServer) scheduleTurnTimer(ar *game.Arena, unitID ds.ID) {
+	gs.cancelTurnTimer(ar.ID)
+
+	timer := time.AfterFunc(game.TurnTimeSeconds*time.Second, func() {
+		gs.onTurnTimeout(ar, unitID)
+	})
+
+	gs.timersMu.Lock()
+	gs.turnTimers[ar.ID] = timer
+	gs.timersMu.Unlock()
+}
+
+func (gs *GameServer) cancelTurnTimer(arenaID ds.ID) {
+	gs.timersMu.Lock()
+	defer gs.timersMu.Unlock()
+
+	if t, ok := gs.turnTimers[arenaID]; ok {
+		t.Stop()
+		delete(gs.turnTimers, arenaID)
+	}
+}
+
+func (gs *GameServer) onTurnTimeout(ar *game.Arena, unitID ds.ID) {
+	// Stale timer — turn already advanced by other means.
+	if ar.ActiveUnitID != unitID {
+		return
+	}
+
+	owner := ar.Players[ar.ActivePlayer]
+
+	states, err := ar.EndTurn(owner.ID)
+	if err != nil {
+		log.Printf("[gameloop] EndTurn error on timeout: %v", err)
+		return
+	}
+
+	gs.broadcastStates(ar, owner.ID, states)
+	gs.advanceGameLoop(ar)
 }

@@ -1,8 +1,11 @@
 package game
 
 import (
+	"fmt"
 	"log"
 
+	"github.com/ognev-dev/goplease/app/ds"
+	"github.com/ognev-dev/goplease/game/ability"
 	"github.com/ognev-dev/goplease/game/ability/status"
 )
 
@@ -15,7 +18,13 @@ type statusHandler struct {
 	onTurnStart          func(a *Arena, u *Unit, v status.Value) ApplyStates
 	onTurnEnd            func(a *Arena, u *Unit, v status.Value) ApplyStates
 	onOtherStatusApplied func(a *Arena, from, to *Unit, applied *status.Value, v status.Value) ApplyStates
+
+	// status may mutate its value when being applied
 	mutate               func(a *Arena, v *status.Value, from, to *Unit)
+
+	// validateAbilityTarget restricts which ability/target the unit may use
+	// while this status is active. Returns an error if the choice is disallowed.
+	validateAbilityTarget func(a *Arena, caster *Unit, ab ability.Ability, target *HexCoord, sv status.Value) error
 }
 
 var statusHandlers = map[status.Type]*statusHandler{
@@ -38,6 +47,27 @@ var provokedSH = &statusHandler{
 			v.Meta = map[string]any{}
 		}
 		v.Meta["provoker"] = from.ID
+	},
+	validateAbilityTarget: func(a *Arena, caster *Unit, ab ability.Ability, target *HexCoord, sv status.Value) error {
+		if !ab.IsDirectDamage() {
+			return nil
+		}
+
+		provokerID, ok := sv.Meta["provoker"].(ds.ID)
+		if !ok {
+			return nil
+		}
+
+		provoker := a.unitByID(provokerID)
+		if provoker == nil || !provoker.Alive() {
+			return nil
+		}
+
+		if target == nil || *target != provoker.PosVal() {
+			return fmt.Errorf("unit is provoked and must target %s", provoker.Name)
+		}
+
+		return nil
 	},
 }
 

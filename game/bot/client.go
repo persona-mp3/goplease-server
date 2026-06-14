@@ -10,7 +10,7 @@ import (
 	"github.com/ognev-dev/goplease/game/api"
 )
 
-type botClient struct {
+type client struct {
 	inbox    chan api.InMessage
 	outbox   chan []byte
 	stop     chan struct{}
@@ -19,15 +19,15 @@ type botClient struct {
 	conn     *websocket.Conn
 }
 
-func newBotClient() *botClient {
-	return &botClient{
+func newBotClient() *client {
+	return &client{
 		inbox:  make(chan api.InMessage, 128),
 		outbox: make(chan []byte, 128),
 		stop:   make(chan struct{}),
 	}
 }
 
-func (c *botClient) connect(url string) error {
+func (c *client) connect(url string) error {
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		return err
@@ -41,7 +41,7 @@ func (c *botClient) connect(url string) error {
 	return nil
 }
 
-func (c *botClient) send(action api.Action, data any) {
+func (c *client) send(action api.Action, data any) {
 	b, err := json.Marshal(api.OutMessage{Action: action, Data: data})
 	if err != nil {
 		log.Printf("[bot] marshal error: %v", err)
@@ -54,8 +54,11 @@ func (c *botClient) send(action api.Action, data any) {
 	}
 }
 
-func (c *botClient) readLoop(conn *websocket.Conn) {
-	defer c.close()
+func (c *client) readLoop(conn *websocket.Conn) {
+	defer func() {
+		c.close()
+		close(c.inbox)
+	}()
 	for {
 		_, raw, err := conn.ReadMessage()
 		if err != nil {
@@ -75,7 +78,7 @@ func (c *botClient) readLoop(conn *websocket.Conn) {
 	}
 }
 
-func (c *botClient) writeLoop(conn *websocket.Conn) {
+func (c *client) writeLoop(conn *websocket.Conn) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -99,7 +102,7 @@ func (c *botClient) writeLoop(conn *websocket.Conn) {
 	}
 }
 
-func (c *botClient) close() {
+func (c *client) close() {
 	c.stopOnce.Do(func() {
 		c.mu.Lock()
 		if c.conn != nil {

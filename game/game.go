@@ -1,11 +1,11 @@
 package game
 
 const (
-	MaxTurns                        = 20
-	TurnTimeSeconds                 = 30
+	MaxTurns                        = 20 // TODO
+	TurnTimeSeconds                 = 999
 	UnitsPerPlacementPhase          = 3
 	MaxPhantomAPPerUnitPerTurn      = 3
-	ApplyImpatienceStatusAfterRound = 3
+	ApplyImpatienceStatusAfterRound = 10
 )
 
 type RoundPhase int

@@ -113,7 +113,7 @@ var stunnedStatus = &Status{
 
 var provokedStatus = &Status{
 	Name:        "Provoked",
-	Description: "This unit is forced to target the provoking unit if possible.",
+	Description: "Forced to target the provoker with the next direct-damage attack, if possible.",
 	Duration:    1,
 	Type:        Provoked,
 	Alignment:   Negative,
@@ -122,7 +122,7 @@ var provokedStatus = &Status{
 // This status is only informational and has no effect
 var provokingStatus = &Status{
 	Name:        "Provoking",
-	Description: "This unit is provoking other units and will be attacked by them on their turn.",
+	Description: "Forces nearby enemies to target you with their next direct-damage attack.",
 	Duration:    1,
 	Type:        Provoking,
 	Alignment:   Neutral,

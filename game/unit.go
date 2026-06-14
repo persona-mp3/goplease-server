@@ -80,8 +80,8 @@ func (u *Unit) ValidateAbilityUse(id ability.ID) error {
 		return fmt.Errorf("unit do not have ability: %s", string(id))
 	}
 
-	ab, ok := ability.Abilities[id]
-	if !ok {
+	ab := ability.ByID(id)
+	if ab.ID == ability.Unknown {
 		return fmt.Errorf("unknown ability: %s", string(id))
 	}
 

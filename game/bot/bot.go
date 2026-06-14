@@ -16,7 +16,7 @@ const (
 )
 
 type Bot struct {
-	client   *botClient
+	client   *client
 	url      string
 	playerID ds.ID
 	state    *gameState
@@ -43,6 +43,7 @@ func (b *Bot) Connect() (ds.ID, error) {
 		return ds.NilID, fmt.Errorf("[bot] Failed to connect: %w", err)
 	}
 
+	connected := false
 	for msg := range b.client.inbox {
 		if msg.Action == api.ConnectedAction {
 			var payload struct {
@@ -51,12 +52,18 @@ func (b *Bot) Connect() (ds.ID, error) {
 			json.Unmarshal(msg.Data, &payload)
 			b.playerID = payload.PlayerID
 
-			go b.run()
-			return b.playerID, nil
+			connected = true
+			break
 		}
 	}
 
-	return ds.NilID, fmt.Errorf("bot: no connected message")
+	if !connected {
+		return ds.NilID, fmt.Errorf("bot: no connected message")
+	}
+
+	go b.run()
+
+	return b.playerID, nil
 }
 
 func (b *Bot) handle(msg api.InMessage) {
@@ -73,14 +80,8 @@ func (b *Bot) handle(msg api.InMessage) {
 	case api.NewGameAction:
 		b.handleNewGame(msg.Data)
 
-	case api.YouWinAction:
-		log.Println("[bot] won!")
-
-	case api.YouLoseAction:
-		log.Println("[bot] lost")
-
-	case api.OppSurrenderedAction:
-		log.Println("[bot] opponent surrendered")
+	case api.YouWinAction, api.YouLoseAction, api.OppSurrenderedAction:
+		b.handleGameOver(msg.Action)
 
 	case api.PlaceUnitAction:
 		b.handlePlaceUnit()
@@ -104,6 +105,8 @@ func (b *Bot) handle(msg api.InMessage) {
 
 	case api.ApplyStateAction:
 		b.handleApplyState(msg.Data)
+	case api.OppDisconnectedAction:
+		b.handleOppDisconnected()
 
 	default:
 		log.Printf("[bot] unhandled action: %s", msg.Action)

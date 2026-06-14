@@ -3,6 +3,7 @@ package ability
 import "github.com/ognev-dev/goplease/game/ability/status"
 
 const (
+	Unknown          ID = ""
 	BasicMeleeAttack ID = "basic_melee_attack"
 	BasicRangeAttack ID = "basic_range_attack"
 	BasicMagicAttack ID = "basic_magic_attack"
@@ -65,7 +66,8 @@ const (
 
 const HintCurrentATK = "ATK"
 
-var Abilities = map[ID]Ability{
+// Use ByID(id) to get the ability
+var abilities = map[ID]Ability{
 	BasicMeleeAttack: {
 		Type:        Skill,
 		IsPassive:   false,
@@ -117,7 +119,7 @@ var Abilities = map[ID]Ability{
 		Type:        Skill,
 		IsPassive:   false,
 		Name:        "Provoke",
-		Description: "Forces enemies to attack you on their turn.",
+		Description: "Forces enemies within range to target you with their next direct-damage attack on their turn.",
 		Cooldown:    2,
 		Range:       2,
 		TargetMode:  TargetEnemies,

@@ -72,7 +72,7 @@ type Effect struct {
 }
 
 func ByID(id ID) Ability {
-	s, ok := Abilities[id]
+	s, ok := abilities[id]
 	if ok {
 		s.ID = id
 	}
@@ -83,6 +83,18 @@ func ByID(id ID) Ability {
 func (a Ability) IsBasicAttack() bool {
 	switch a.ID {
 	case BasicMeleeAttack, BasicRangeAttack, BasicMagicAttack:
+		return true
+	}
+
+	return false
+}
+
+func (a Ability) IsDirectDamage() bool {
+	if a.IsBasicAttack() {
+		return true
+	}
+
+	if a.Activation == SelectEnemy && a.Effect.DealDamage != 0 {
 		return true
 	}
 

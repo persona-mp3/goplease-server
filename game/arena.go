@@ -605,6 +605,16 @@ func (a *Arena) ValidateAbilityUse(caster *Unit, ab ability.Ability, targetAt *H
 		return fmt.Errorf("ability %s is passive and cannot be activated", ab.ID)
 	}
 
+	for t, sv := range caster.Statuses {
+		h := statusHandlers[t]
+		if h == nil || h.validateAbilityTarget == nil {
+			continue
+		}
+		if err = h.validateAbilityTarget(a, caster, ab, targetAt, sv); err != nil {
+			return err
+		}
+	}
+
 	if !ab.IsPassive && caster.CurrentAP < 1 {
 		player, _ := a.PlayerByID(caster.OwnerID)
 		if player == nil || player.PhantomAP < 1 {
@@ -624,9 +634,6 @@ func (a *Arena) ValidateAbilityUse(caster *Unit, ab ability.Ability, targetAt *H
 	if ab.Area != "" {
 		rangeN = ab.AreaRadius
 	}
-
-	log.Printf("[validate] caster pos: %v, target: %v, distance: %d, range: %d",
-		caster.PosVal(), *targetAt, caster.PosVal().Distance(*targetAt), rangeN)
 
 	if caster.Pos.Distance(*targetAt) > rangeN {
 		return fmt.Errorf("target out of range: distance %d, range %d",
@@ -670,6 +677,16 @@ func (a *Arena) ValidateAbilityUse(caster *Unit, ab ability.Ability, targetAt *H
 	case ability.SelectFreeCell:
 		if target != nil {
 			return fmt.Errorf("ability %s: target cell is occupied", ab.ID)
+		}
+	}
+
+	return nil
+}
+
+func (a *Arena) unitByID(unitID ds.ID) *Unit {
+	for _, u := range a.UnitsQueue {
+		if u.ID == unitID {
+			return u
 		}
 	}
 
