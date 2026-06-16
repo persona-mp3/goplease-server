@@ -1,35 +1,27 @@
-// Package main is the entry point of the server application.
 package main
 
 import (
 	"context"
 	"errors"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"github.com/ognev-dev/goplease/app"
-	"github.com/ognev-dev/goplease/app/service"
-	"github.com/ognev-dev/goplease/server"
-	"github.com/ognev-dev/goplease/tracing"
-	"github.com/ognev-dev/goplease/worker"
+	"github.com/ognev-dev/goplease/ws"
+)
+
+const (
+	// TODO proper config
+	RWTimeout = 10 * time.Second
+	Host      = "127.0.0.1"
+	Port      = "8090"
 )
 
 func main() {
-	conf := app.Config()
-	ctx, cancelCtx := context.WithCancel(context.Background())
-	tracer, err := tracing.New(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = worker.Start(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit,
 		syscall.SIGTERM,
@@ -38,42 +30,46 @@ func main() {
 		syscall.SIGQUIT, // kill -SIGQUIT
 	)
 
-	db, err := app.NewDB(ctx)
-	if err != nil {
-		log.Fatal(err)
+	hub := ws.NewHub()
+	gs := ws.NewGameServer(hub)
+
+	go hub.Run()
+	go gs.Run()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/play/", hub.ServeWS)
+
+	addr := net.JoinHostPort(Host, Port)
+	server := &http.Server{
+		Addr:         addr,
+		Handler:      mux,
+		ReadTimeout:  RWTimeout,
+		WriteTimeout: RWTimeout,
 	}
 
-	err = app.MigrateDB(ctx, db)
-	if err != nil {
-		db.Close()
-		log.Fatal(err)
-	}
-
-	defer db.Close() // log.Fatal will exit, and `defer db.Close()` will not run (gocritic)
-
-	services := service.New(db, tracer)
-	srv := server.New(services, tracer)
+	serverErrors := make(chan error, 1)
 
 	go func() {
-		<-quit
-		cancelCtx()
-		err := srv.Close()
-		if err != nil {
-			log.Fatal(err)
+		log.Printf("[goplease] server running at %s", addr)
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErrors <- err
 		}
 	}()
 
-	log.Println(conf.App.Name + " (" + conf.App.Version + ") serving at " + conf.Server.Host + ":" + conf.Server.Port)
+	select {
+	case err := <-serverErrors:
+		log.Fatalf("[goplease] server error: %v", err)
 
-	if conf.Server.AutocertHosts != "" {
-		err = srv.ListenAndServeTLS("", "")
-	} else {
-		err = srv.ListenAndServe()
-	}
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Println(err.Error())
-		return
-	}
+	case sig := <-quit:
+		log.Printf("[goplease] %v signal received...", sig)
 
-	log.Println(conf.App.Name + " (" + conf.App.Version + ") server closed")
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		if err := server.Shutdown(ctx); err != nil {
+			_ = server.Close()
+		}
+
+		log.Println("[goplease] bye")
+	}
 }
