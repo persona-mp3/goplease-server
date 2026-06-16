@@ -3,11 +3,9 @@
 trying to make a game in pure go
 
 TODO
- - [ ] Piercing Shot: 4/2/1
+ - [ ] Piercing Shot: 4/2/1 (100% -> 50%  -> 25%)
 
 
-- [ ] Turn timer
-- [ ] limit game by rounds
 
 
 
