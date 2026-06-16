@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ognev-dev/goplease/ds"
-	"github.com/ognev-dev/goplease/ability"
-	"github.com/ognev-dev/goplease/ability/status"
+	"github.com/goplease-game/server/ability"
+	"github.com/goplease-game/server/ability/status"
+	"github.com/goplease-game/server/ds"
 )
 
 type statusHandler struct {
@@ -20,7 +20,7 @@ type statusHandler struct {
 	onOtherStatusApplied func(a *Arena, from, to *Unit, applied *status.Value, v status.Value) ApplyStates
 
 	// status may mutate its value when being applied
-	mutate               func(a *Arena, v *status.Value, from, to *Unit)
+	mutate func(a *Arena, v *status.Value, from, to *Unit)
 
 	// validateAbilityTarget restricts which ability/target the unit may use
 	// while this status is active. Returns an error if the choice is disallowed.
@@ -28,7 +28,7 @@ type statusHandler struct {
 }
 
 var statusHandlers = map[status.Type]*statusHandler{
-	status.Impatience: impatienceSH,
+	status.Impatience:     impatienceSH,
 	status.Provoked:       provokedSH,
 	status.Provoking:      nil, // this is just decorative status
 	status.Stunned:        stunnedSH,
@@ -96,7 +96,7 @@ var sharpenedSH = simpleAttackModifierSH
 var frenziedSH = simpleAttackModifierSH
 
 var markedSH = &statusHandler{
-	onDamageCalculated:  func(a *Arena, dmg *int, sv status.Value) {
+	onDamageCalculated: func(a *Arena, dmg *int, sv status.Value) {
 		*dmg += sv.Value
 		return
 	},
@@ -388,7 +388,7 @@ func handleOnDamageReceivedStatuses(a *Arena, from, to *Unit) (state ApplyStates
 	return
 }
 
-func triggerStatusOnDamageCalculated(a *Arena, u *Unit, dmg *int)  {
+func triggerStatusOnDamageCalculated(a *Arena, u *Unit, dmg *int) {
 	for t, v := range u.Statuses {
 		h, ok := statusHandlers[t]
 		if !ok || h == nil {

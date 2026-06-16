@@ -1,7 +1,7 @@
 package unit
 
 import (
-	ab "github.com/ognev-dev/goplease/ability"
+	ab "github.com/goplease-game/server/ability"
 )
 
 /*

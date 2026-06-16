@@ -7,8 +7,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ognev-dev/goplease/api"
-	"github.com/ognev-dev/goplease/ds"
+	"github.com/goplease-game/server/api"
+	"github.com/goplease-game/server/ds"
 )
 
 const (

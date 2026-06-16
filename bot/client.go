@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/goplease-game/server/api"
 	"github.com/gorilla/websocket"
-	"github.com/ognev-dev/goplease/api"
 )
 
 type client struct {

@@ -1,7 +1,7 @@
 package game
 
 import (
-	"github.com/ognev-dev/goplease/ds"
+	"github.com/goplease-game/server/ds"
 )
 
 type Player struct {

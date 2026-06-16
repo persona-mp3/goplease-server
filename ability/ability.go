@@ -1,6 +1,6 @@
 package ability
 
-import "github.com/ognev-dev/goplease/ability/status"
+import "github.com/goplease-game/server/ability/status"
 
 type ID string
 

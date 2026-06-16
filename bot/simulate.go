@@ -1,9 +1,9 @@
 package bot
 
 import (
-	"github.com/ognev-dev/goplease"
-	"github.com/ognev-dev/goplease/ability"
-	"github.com/ognev-dev/goplease/ability/status"
+	"github.com/goplease-game/server"
+	"github.com/goplease-game/server/ability"
+	"github.com/goplease-game/server/ability/status"
 )
 
 type simAction struct {

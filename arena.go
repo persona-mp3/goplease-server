@@ -6,9 +6,9 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/ognev-dev/goplease/ability"
-	"github.com/ognev-dev/goplease/ability/status"
-	"github.com/ognev-dev/goplease/ds"
+	"github.com/goplease-game/server/ability"
+	"github.com/goplease-game/server/ability/status"
+	"github.com/goplease-game/server/ds"
 )
 
 // Arena holds the full state of one match.
@@ -175,7 +175,7 @@ func (a *Arena) MoveUnit(unitID ds.ID, to HexCoord, playerID ds.ID) (sts ApplySt
 	}
 
 	if a.ActiveUnitID != unitID {
-		err =  fmt.Errorf("unit %q is not active", unitID)
+		err = fmt.Errorf("unit %q is not active", unitID)
 		return
 	}
 
@@ -186,7 +186,7 @@ func (a *Arena) MoveUnit(unitID ds.ID, to HexCoord, playerID ds.ID) (sts ApplySt
 	}
 
 	if u.OwnerID != playerID {
-		err =  fmt.Errorf("unit %q does not belong to player %q", unitID, playerID)
+		err = fmt.Errorf("unit %q does not belong to player %q", unitID, playerID)
 		return
 	}
 
@@ -378,7 +378,7 @@ func (a *Arena) UseAbility(req UseAbilityPayload, playerID ds.ID) (state ApplySt
 	}
 	state.With(handlerStates)
 	state.ToOpp(ApplyState{
-		ToUnitID: u.ID,
+		ToUnitID:   u.ID,
 		UseAbility: new(req),
 	})
 
@@ -508,7 +508,7 @@ func (a *Arena) AlliesInRange(u *Unit, radius int) []*Unit {
 	units := []*Unit{}
 	cells := a.Board.Cells.InRangeHavingUnit(u.PosVal(), radius)
 	for _, c := range cells {
-		if !c.Unit.Alive() || c.Unit.IsEnemy(u){
+		if !c.Unit.Alive() || c.Unit.IsEnemy(u) {
 			continue
 		}
 
@@ -522,7 +522,7 @@ func (a *Arena) EnemiesInRange(u *Unit, radius int) []*Unit {
 	units := []*Unit{}
 	cells := a.Board.Cells.InRangeHavingUnit(u.PosVal(), radius)
 	for _, c := range cells {
-		if !c.Unit.Alive() || c.Unit.IsAlly(u){
+		if !c.Unit.Alive() || c.Unit.IsAlly(u) {
 			continue
 		}
 
@@ -595,8 +595,8 @@ func (a *Arena) CellOccupied(at HexCoord) (ok bool) {
 }
 
 func (a *Arena) ValidateAbilityUse(caster *Unit, ab ability.Ability, targetAt *HexCoord) error {
-	 err := caster.ValidateAbilityUse(ab.ID)
-	 if err != nil {
+	err := caster.ValidateAbilityUse(ab.ID)
+	if err != nil {
 		return err
 	}
 

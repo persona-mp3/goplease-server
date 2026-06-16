@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"log"
 
-	game "github.com/ognev-dev/goplease"
-	"github.com/ognev-dev/goplease/api"
+	game "github.com/goplease-game/server"
+	"github.com/goplease-game/server/api"
 )
 
 func (b *Bot) handleNewGame(data json.RawMessage) {

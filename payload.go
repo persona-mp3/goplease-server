@@ -1,8 +1,8 @@
 package game
 
 import (
-	"github.com/ognev-dev/goplease/ability"
-	"github.com/ognev-dev/goplease/ds"
+	"github.com/goplease-game/server/ability"
+	"github.com/goplease-game/server/ds"
 )
 
 type NewGamePayload struct {

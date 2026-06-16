@@ -3,10 +3,10 @@ package game
 import (
 	"fmt"
 
-	"github.com/ognev-dev/goplease/ability"
-	"github.com/ognev-dev/goplease/ability/status"
-	"github.com/ognev-dev/goplease/ds"
-	"github.com/ognev-dev/goplease/unit"
+	"github.com/goplease-game/server/ability"
+	"github.com/goplease-game/server/ability/status"
+	"github.com/goplease-game/server/ds"
+	"github.com/goplease-game/server/unit"
 )
 
 type Unit struct {

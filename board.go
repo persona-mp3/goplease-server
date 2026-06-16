@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ognev-dev/goplease/ability"
-	"github.com/ognev-dev/goplease/ds"
+	"github.com/goplease-game/server/ability"
+	"github.com/goplease-game/server/ds"
 )
 
 const (

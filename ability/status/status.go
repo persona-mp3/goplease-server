@@ -1,6 +1,6 @@
 package status
 
-import "github.com/ognev-dev/goplease/ds"
+import "github.com/goplease-game/server/ds"
 
 type Type string
 type Alignment string

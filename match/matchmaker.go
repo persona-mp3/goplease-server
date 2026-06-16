@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	game "github.com/ognev-dev/goplease"
-	"github.com/ognev-dev/goplease/bot"
-	"github.com/ognev-dev/goplease/ds"
+	game "github.com/goplease-game/server"
+	"github.com/goplease-game/server/bot"
+	"github.com/goplease-game/server/ds"
 )
 
 const matchmakingTimeout = 2 * time.Second

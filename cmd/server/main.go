@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ognev-dev/goplease/ws"
+	"github.com/goplease-game/server/ws"
 )
 
 const (

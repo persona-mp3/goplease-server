@@ -1,9 +1,9 @@
 package game
 
 import (
-	"github.com/ognev-dev/goplease/ability"
-	"github.com/ognev-dev/goplease/ability/status"
-	"github.com/ognev-dev/goplease/ds"
+	"github.com/goplease-game/server/ability"
+	"github.com/goplease-game/server/ability/status"
+	"github.com/goplease-game/server/ds"
 )
 
 // ApplyState represents a single, atomic state mutation applied to a unit or player.

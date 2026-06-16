@@ -1,7 +1,7 @@
 package unit
 
 import (
-	"github.com/ognev-dev/goplease/ability"
+	"github.com/goplease-game/server/ability"
 )
 
 type Template struct {

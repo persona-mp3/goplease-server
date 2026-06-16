@@ -6,9 +6,9 @@ import (
 	"math"
 	"math/rand/v2"
 
-	game "github.com/ognev-dev/goplease"
-	"github.com/ognev-dev/goplease/ability/status"
-	"github.com/ognev-dev/goplease/ds"
+	game "github.com/goplease-game/server"
+	"github.com/goplease-game/server/ability/status"
+	"github.com/goplease-game/server/ds"
 )
 
 type gameState struct {

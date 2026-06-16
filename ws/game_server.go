@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	game "github.com/ognev-dev/goplease"
-	"github.com/ognev-dev/goplease/api"
-	"github.com/ognev-dev/goplease/ds"
-	"github.com/ognev-dev/goplease/match"
+	game "github.com/goplease-game/server"
+	"github.com/goplease-game/server/api"
+	"github.com/goplease-game/server/ds"
+	"github.com/goplease-game/server/match"
 )
 
 // GameServer wires the hub to the game layer.

@@ -3,9 +3,9 @@ package arena_test
 import (
 	"testing"
 
-	"github.com/ognev-dev/goplease/game"
-	"github.com/ognev-dev/goplease/game/ability"
-	"github.com/ognev-dev/goplease/game/ability/status"
+	game "github.com/goplease-game/server"
+	"github.com/goplease-game/server/ability"
+	"github.com/goplease-game/server/ability/status"
 )
 
 func TestBasicAttack(t *testing.T) {

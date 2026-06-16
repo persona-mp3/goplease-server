@@ -1,8 +1,8 @@
 package game
 
 import (
-	"github.com/ognev-dev/goplease/ability"
-	"github.com/ognev-dev/goplease/ability/status"
+	"github.com/goplease-game/server/ability"
+	"github.com/goplease-game/server/ability/status"
 )
 
 // because of initialization cycle

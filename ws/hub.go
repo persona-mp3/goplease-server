@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/goplease-game/server/api"
+	"github.com/goplease-game/server/ds"
 	"github.com/gorilla/websocket"
-	"github.com/ognev-dev/goplease/api"
-	"github.com/ognev-dev/goplease/ds"
 )
 
 // ─── Upgrader ─────────────────────────────────────────────────────────────────
