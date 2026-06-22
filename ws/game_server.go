@@ -1,3 +1,4 @@
+// Package ws ...
 package ws
 
 import (
@@ -88,9 +89,10 @@ func (gs *GameServer) onMessage(c *Client, msg api.InMessage) {
 
 // prepareNewGame enqueues the client in matchmaking.
 func (gs *GameServer) prepareNewGame(c *Client) {
-	gs.matchmaker.Enqueue(c.PlayerID, false, func(arena *game.Arena, playerIndex int) {
-		gs.startSession(arena, playerIndex, c)
+	gs.matchmaker.Enqueue(c.PlayerID, false, func(arena *game.Arena, _ int) {
+		gs.startSession(arena, c)
 	})
+
 	c.Send(api.OutMessage{Action: api.SearchingOppAction})
 }
 
@@ -101,17 +103,17 @@ func (gs *GameServer) notifyMatchFound(arena *game.Arena, playerIndex int) {
 	if client == nil {
 		return
 	}
-	gs.startSession(arena, playerIndex, client)
+	gs.startSession(arena, client)
 }
 
 // startSession creates a Session for the arena and wires the WebSocket client to it.
-func (gs *GameServer) startSession(arena *game.Arena, playerIndex int, c *Client) {
+func (gs *GameServer) startSession(arena *game.Arena, c *Client) {
 	gs.mu.Lock()
-	session, exists := gs.sessions[arena.ID]
+	_, exists := gs.sessions[arena.ID]
 	if !exists {
 		p1 := arena.Players[0]
 		p2 := arena.Players[1]
-		session = game.NewSessionFromSnapshot(arena)
+		session := game.NewSessionFromSnapshot(arena)
 		gs.sessions[arena.ID] = session
 
 		go gs.pumpEvents(session.P1Events, p1.ID)
@@ -122,7 +124,6 @@ func (gs *GameServer) startSession(arena *game.Arena, playerIndex int, c *Client
 	gs.mu.Unlock()
 
 	c.ArenaID = arena.ID
-	_ = playerIndex
 }
 
 // pumpEvents forwards Session events to the corresponding WebSocket client.

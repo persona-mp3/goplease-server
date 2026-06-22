@@ -103,6 +103,10 @@ type Arena struct {
 
 	Phase                  RoundPhase
 	UnitsPerPlacementPhase int
+
+	DisableGameOver bool
+	DisableBot bool
+	DisableTurnTimer bool
 }
 
 // NewArena initializes and returns a pointer to a new Arena instance linking two competitive players.

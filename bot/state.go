@@ -196,7 +196,6 @@ func (b *Bot) addUnitStatus(u *game.Unit, statusType status.Type, meta map[strin
 	}
 
 	u.Statuses[statusType] = status.Value{
-		UnitID:   u.ID,
 		Duration: st.Duration,
 		Value:    st.InitialValue,
 		Status:   st,

@@ -11,10 +11,12 @@ type NewGamePayload struct {
 	ArenaID                    ds.ID      `json:"arena_id"`
 	Phase                      RoundPhase `json:"phase"`
 	Board                      *Board     `json:"board"`
+	Queue                      []*Unit    `json:"queue,omitempty"`
 	Player                     *Player    `json:"player"`
 	Opponent                   string     `json:"opponent"`
 	TurnTimeSeconds            int        `json:"turn_time_seconds"`
 	MaxPhantomAPPerUnitPerTurn int        `json:"max_phantom_ap_per_unit_per_turn"`
+	Round                      int        `json:"round"`
 }
 
 // PlaceUnitPayload is the payload for placing a unit on the board at a specific coordinate.

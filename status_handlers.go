@@ -312,7 +312,6 @@ func ApplyStatusToUnit(a *Arena, st status.Type, from, to *Unit) (state ApplySta
 	}
 
 	sv := status.Value{
-		UnitID:   to.ID,
 		Duration: inst.Duration,
 		Value:    inst.InitialValue,
 		Status:   inst,

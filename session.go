@@ -36,6 +36,13 @@ func NewSession(p1, p2 *Player) *Session {
 // NewSessionFromSnapshot creates a Session from a pre-configured Arena.
 // Unlike NewSession, it does not send new_game automatically — call Start() when ready.
 func NewSessionFromSnapshot(arena *Arena) *Session {
+	if arena.UnitsPerPlacementPhase == 0 {
+		arena.UnitsPerPlacementPhase = UnitsPerPlacementPhase
+	}
+	if arena.CurrentRound == 0 {
+		arena.CurrentRound = 1
+	}
+
 	return &Session{
 		Arena:    arena,
 		P1Events: make(chan api.OutMessage, 128),
@@ -46,18 +53,20 @@ func NewSessionFromSnapshot(arena *Arena) *Session {
 
 // Start sends the initial game state to both players and begins the game loop
 // if the arena is already in PlayPhase.
+// Start sends the initial game state to both players.
 func (s *Session) Start() {
 	s.send(s.Arena.Players[0].ID, api.OutMessage{
 		Action: api.NewGameAction,
 		Data:   newGamePayload(s.Arena, 0),
 	})
+
 	s.send(s.Arena.Players[1].ID, api.OutMessage{
 		Action: api.NewGameAction,
 		Data:   newGamePayload(s.Arena, 1),
 	})
 
-	if s.Arena.Phase == PlayPhase {
-		s.advanceGameLoop()
+	if s.Arena.DisableBot {
+		s.Arena.MarkPlayerReady(s.Arena.Players[1].ID)
 	}
 }
 
@@ -300,6 +309,10 @@ func (s *Session) startNewRound() {
 
 // checkAndHandleGameOver checks for a winner and sends game-over events.
 func (s *Session) checkAndHandleGameOver() bool {
+	if s.Arena.DisableGameOver {
+		return false
+	}
+
 	loserIdx := s.Arena.CheckGameOver()
 	if loserIdx < 0 {
 		return false
@@ -366,6 +379,10 @@ func (s *Session) sendErr(playerID ds.ID, msg string) {
 
 // scheduleTimer sets a turn timer that force-ends the turn on expiry.
 func (s *Session) scheduleTimer(ar *Arena, unitID ds.ID) {
+	if ar.DisableTurnTimer {
+		return
+	}
+	
 	s.cancelTimer(ar.ID)
 	t := time.AfterFunc(TurnTimeSeconds*time.Second, func() {
 		if ar.ActiveUnitID != unitID {
@@ -404,13 +421,21 @@ func newGamePayload(arena *Arena, myIndex int) NewGamePayload {
 		}
 		cells[coord] = &c
 	}
+
+	turnTime := TurnTimeSeconds
+	if arena.DisableTurnTimer {
+		turnTime = 0
+	}
+
 	return NewGamePayload{
-		TurnTimeSeconds:            TurnTimeSeconds,
+		TurnTimeSeconds:            turnTime,
 		MaxPhantomAPPerUnitPerTurn: MaxPhantomAPPerUnitPerTurn,
 		ArenaID:                    arena.ID,
 		Phase:                      arena.Phase,
 		Board:                      &Board{Cells: cells},
+		Queue:                      arena.UnitsQueue,
 		Player:                     arena.Players[myIndex],
 		Opponent:                   arena.Players[1-myIndex].Name,
+		Round:                      arena.CurrentRound,
 	}
 }

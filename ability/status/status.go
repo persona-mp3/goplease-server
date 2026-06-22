@@ -1,8 +1,6 @@
 // Package status ...
 package status
 
-import "github.com/goplease-game/server/ds"
-
 // Type identifies a kind of status effect that can be applied to a unit.
 type Type string
 
@@ -49,7 +47,6 @@ type Status struct {
 // Value represents an applied instance of a status on a specific unit,
 // including its remaining duration, current value, and any per-application metadata.
 type Value struct {
-	UnitID   ds.ID          `json:"unit_id"`
 	Duration int            `json:"duration"`
 	Value    int            `json:"value"`
 	Status   *Status        `json:"status"`

@@ -20,7 +20,7 @@ var (
 )
 
 // replyDelay sets the artificial pause duration before a bot transmits its reaction to simulate human pacing.
-const replyDelay = 800 * time.Millisecond
+const replyDelay = 500 * time.Millisecond
 
 // Bot represents an automated agent instance that connects to the game server and acts as an opponent.
 type Bot struct {
