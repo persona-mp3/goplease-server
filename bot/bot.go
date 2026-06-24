@@ -30,15 +30,13 @@ type Bot struct {
 	state    *gameState
 }
 
-const botPort = "8090"
-
 // New instantiates and returns a pre-configured Bot runner referencing default connection addresses.
 func New() *Bot {
-	host := config.Get().Host
+	port := config.Get().Port
 
-	botAddr := fmt.Sprintf("%s:%s", host, botPort)
+	botAddr := "localhost:" + port
 
-	// ws://127.0.0.1:8090/play/.
+	// ws://localhost:port/play/.
 	wsPlayEndpoint := fmt.Sprintf("ws://%s/play/", botAddr)
 
 	return &Bot{t: newWSTransport(wsPlayEndpoint)}
