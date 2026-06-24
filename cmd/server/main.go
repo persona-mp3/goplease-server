@@ -23,6 +23,10 @@ const (
 )
 
 func main() {
+	config := parseArgs()
+	log.Printf("server config: host: %s, port: %s, rwTimeout: %s\n\n",
+		config.host, config.port, config.rwTimeout.String())
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit,
 		syscall.SIGTERM,
@@ -40,12 +44,12 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/play/", hub.ServeWS)
 
-	addr := net.JoinHostPort(Host, Port)
+	addr := net.JoinHostPort(config.host, config.port)
 	server := &http.Server{
 		Addr:         addr,
 		Handler:      mux,
-		ReadTimeout:  RWTimeout,
-		WriteTimeout: RWTimeout,
+		ReadTimeout:  config.rwTimeout,
+		WriteTimeout: config.rwTimeout,
 	}
 
 	serverErrors := make(chan error, 1)
