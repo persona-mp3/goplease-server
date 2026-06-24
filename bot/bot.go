@@ -11,6 +11,7 @@ import (
 
 	game "github.com/goplease-game/server"
 	"github.com/goplease-game/server/api"
+	"github.com/goplease-game/server/config"
 	"github.com/goplease-game/server/ds"
 )
 
@@ -29,9 +30,18 @@ type Bot struct {
 	state    *gameState
 }
 
+const botPort = "8090"
+
 // New instantiates and returns a pre-configured Bot runner referencing default connection addresses.
 func New() *Bot {
-	return &Bot{t: newWSTransport("ws://localhost:8090/play/")} // TODO proper config
+	host := config.Get().Host
+
+	botAddr := fmt.Sprintf("%s:%s", host, botPort)
+
+	// ws://127.0.0.1:8090/play/.
+	wsPlayEndpoint := fmt.Sprintf("ws://%s/play/", botAddr)
+
+	return &Bot{t: newWSTransport(wsPlayEndpoint)}
 }
 
 // NewWithSession creates a Bot that plays directly against a Session
